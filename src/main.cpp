@@ -9,9 +9,11 @@
 int PIR_SENSOR_PIN = 0;
 int PIXEL_PIN = 4;
 int PIXEL_COUNT = 1;
-int DISPLAY_SDA_PIN = 0;
-int DISPLAY_SCL_PIN = 0;
+int DISPLAY_SDA_PIN = 0; //D2
+int DISPLAY_SCL_PIN = 0; //D1
+int LDR_PIN = 0; //A0
 #define OLED_RESET_PIN D5
+
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64
 
@@ -39,6 +41,13 @@ void writeOLED(){
   sprintf(time, "%02d:%02d:%02d", h, m, s);
   drawStr(50, 10, "Timer");
   drawStr(40, 30, time);
+
+  int sensorValue = analogRead(A0);   // read the input on analog pin 0
+
+	float voltage = sensorValue * (5.0 / 1023.0);   // Convert the analog reading (which goes from 0 - 1023) to a voltage (0 - 5V)
+
+	display.println("Voltage: " + String(voltage));
+
   display.println(VERSION);
   display.display();
 }
