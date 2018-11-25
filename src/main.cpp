@@ -4,10 +4,17 @@
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <Adafruit_Sensor.h>
 #include <version.h>
 #include <SoftwareSerial.h>
 #include <pcf8574_esp.h>
 #include <math.h>
+#include "DHT.h"
+
+#define DHT_SENSOR_TYPE DHT22   // DHT22
+const int DHTPin = 15; //D8
+// Initialize DHT sensor.
+DHT dht(DHTPin, DHT_SENSOR_TYPE);
 
 SoftwareSerial swSer(D0, D3, false); //TODO is this still needed?
 
@@ -22,16 +29,17 @@ int pressCount[16];
 
 
 TwoWire testWire;
+TwoWire wire2;
 
-int PIR_SENSOR_PIN = 0;
-int PIXEL_PIN = 4;
+int PIR_SENSOR_PIN = 2; //D4
+int PIXEL_PIN = 0; //D3
 int PIXEL_COUNT = 1;
-int DISPLAY_SDA_PIN = 0; //D2
-int DISPLAY_SCL_PIN = 0; //D1
+int DISPLAY_SDA_PIN = 4; //D2
+int DISPLAY_SCL_PIN = 5; //D1
 int LDR_PIN = 0; //A0
-#define PIN_PCF8574_INT D5
-#define PIN_PCF8574_SDA D1
-#define PIN_PCF8574_SCL D2
+#define PIN_PCF8574_INT 14 //D5
+#define PIN_PCF8574_SDA 12 //D6
+#define PIN_PCF8574_SCL 13 //D7
 
 #define OLED_RESET_PIN D5 //just a dummy value. the OLED is not connected to this pin ... TODO: check wheter other devices can still use D5 .. also try to set a pin number here which is not present on the nodemcu module so there will be no interferance
 
@@ -81,6 +89,15 @@ void writeOLED(){
   sprintf(time, "%02d:%02d:%02d", h, m, s);
   drawStr(50, 10, "Timer");
   drawStr(40, 30, time);
+  
+  float h = dht.readHumidity();
+  // Read temperature as Celsius (the default)
+  float t = dht.readTemperature();
+
+  Serial.println("humidity "+ String(h));
+
+  display.println("Humid: " + String(h));
+  display.println("Temp: " + String(t));
 
   int sensorValue = analogRead(A0);   // read the input on analog pin 0
 
@@ -124,15 +141,18 @@ void setup()   {
   display.setTextColor(WHITE);	/* Color of text*/
   pinMode(PIR_SENSOR_PIN, INPUT);
 
+  dht.begin();
+
   strip.begin();
   strip.show();
 
-  Serial.begin(115200);
-  Wire.pins(PIN_PCF8574_SDA, PIN_PCF8574_SCL);//SDA - D1, SCL - D2
-  Wire.begin();
+  Serial.begin(9600);
+  Serial.print("Starting");
+  wire2.pins(PIN_PCF8574_SDA, PIN_PCF8574_SCL);//SDA - D1, SCL - D2
+  wire2.begin();
   testWire.begin();
 
-  swSer.begin(115200);  
+  swSer.begin(9600);  
 
   pinMode(PIN_PCF8574_INT, INPUT);
   pcf8574.begin( 0xFF); 
@@ -155,7 +175,6 @@ void printlnSerial(String str) {
 
 void handleInterrupt () {
    if (digitalRead(PIN_PCF8574_INT) == LOW) {
-
     for (int i = 0; i < sizeof(current_state) / sizeof(current_state[0]); i++) {
       if (millis() != time_btn[i])
       {
@@ -201,7 +220,7 @@ void nonBlockingBreath()
     breathe_time = millis();
     float val = (exp(sin(i/2000.0*PI*10)) - 0.36787944)*108.0; 
     // this is the math function recreating the effect
-    analogWrite(ledPin, val);  // PWM
+    //analogWrite(ledPin, val);  // PWM
     i=i+1;
     handleInterrupt();
   }
@@ -209,6 +228,7 @@ void nonBlockingBreath()
 }
 
 void loop() {
+  Serial.print("Entering loop");
   handleInterrupt();
   updateWatch();/* Every second increment clock and display */
   delay(1000);
