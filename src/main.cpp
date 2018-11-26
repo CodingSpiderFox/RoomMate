@@ -1,10 +1,22 @@
 #include <SPI.h>
 #include <Wire.h>
 #include <Arduino.h>
+#include <Adafruit_Sensor.h>
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <version.h>
+#include <DHT.h>
+#include <SoftwareSerial.h>
+#include <pcf8574_esp.h>
+#include <math.h>
+
+#define DHT_SENSOR_TYPE DHT22   // DHT22
+const int DHTPin = 15; //D8
+// Initialize DHT sensor.
+DHT dht(DHTPin, DHT_SENSOR_TYPE);
+
+TwoWire wire2;
 
 int PIR_SENSOR_PIN = 0;
 int PIXEL_PIN = 4;
@@ -48,6 +60,15 @@ void writeOLED(){
 
 	display.println("Voltage: " + String(voltage));
 
+  float h = dht.readHumidity();
+  // Read temperature as Celsius (the default)
+  float t = dht.readTemperature();
+
+  Serial.println("humidity "+ String(h));
+
+  display.println("Humid: " + String(h));
+  display.println("Temp: " + String(t));
+
   display.println(VERSION);
   display.display();
 }
@@ -80,6 +101,7 @@ void setup()   {
 
   strip.begin();
   strip.show();
+  Serial.begin(9600);
 }
 
 void loop() {
